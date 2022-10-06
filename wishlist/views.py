@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 import datetime
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from wishlist.forms import CreateWishlist
+from django.http import JsonResponse, HttpResponseBadRequest
 
 # Create your views here.
 @login_required(login_url='/wishlist/login/')
@@ -23,6 +25,18 @@ def show_wishlist(request):
     'last_login': request.COOKIES['last_login'],
     }
     return render(request, "wishlist.html", context)
+
+@login_required(login_url='/wishlist/login/')
+def show_wishlist_ajax(request):
+    data_barang_wishlist = BarangWishlist.objects.all()
+    form = CreateWishlist
+    context = {
+    'list_barang': data_barang_wishlist,
+    'nama': 'Kak Cinoy',
+    'last_login': request.COOKIES['last_login'],
+    'form': form
+    }
+    return render(request, "wishlist_ajax.html", context)
 
 def show_xml(request):
     data = BarangWishlist.objects.all()
@@ -74,3 +88,11 @@ def logout_user(request):
     response.delete_cookie('last_login')
     return response
 
+def submit_ajax(request):
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    form = CreateWishlist(request.POST)
+    if form.is_valid():
+        instance = form.save()
+        data = serializers.serialize('json', [ instance, ])
+        return JsonResponse({'data': data}, status=200)
+    return JsonResponse({'error':""})
